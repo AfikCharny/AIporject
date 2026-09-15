@@ -82,7 +82,7 @@
   function buildAxial() {
     var g = [];
     /* skull + jaw */
-    g.push(G.orb(p('skull'), 0.094, [0.94, 1.06, 1.04], 0xcdc4ac, 24));
+    g.push(G.orb(p('skull'), 0.088, [0.82, 1.04, 1.00], 0xcdc4ac, 24));
     g.push(G.belly([p('jawAngle', -0.126, 0.004, -0.004), p('chin', 0, -0.004, 0.004), p('jawAngle', 0, 0.004, -0.004)], {
       r: 0.015, endA: 0.85, endB: 0.85, bulge: 0.4, seg: 20, rad: 9,
       w: 0.9, h: 1.1, up: [0, 1, 0], color: 0xcdc4ac, tendon: 0xbfb6a0

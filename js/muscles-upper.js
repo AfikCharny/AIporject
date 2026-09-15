@@ -22,7 +22,7 @@
         [c.p('clavMid', 0.022, 0.000, 0.000), c.p('acromion', -0.006, -0.004, -0.010),
          c.p('scapSpineLat', -0.008, -0.004, -0.004), c.p('scapSpineMed', 0.004, -0.004, -0.004)],
         { strands: 16, r: 0.020, w: 2.2, h: 0.40, endA: 0.86, endB: 0.62, bulge: 0.55,
-          archOut: 0.046, color: c.color, tendon: c.tendon, rad: 9,
+          archOut: 0.038, color: c.color, tendon: c.tendon, rad: 9,
           rFnStrand: function (s) { return 0.42 + 0.80 * Math.min(1, s * 1.9); },
           map: function (s) { return Math.pow(s, 0.82); } });
     }
@@ -41,7 +41,7 @@
          c.p('l3', 0.012, 0.000, 0.004), c.p('iliacPost', -0.014, 0.004, -0.004), c.p('iliacLat', -0.006, 0.000, -0.010)],
         [c.p('humHead', -0.010, -0.034, 0.006), c.p('humHead', -0.006, -0.058, 0.000)],
         { strands: 16, r: 0.021, w: 2.3, h: 0.36, endA: 0.88, endB: 0.22, bulge: 0.7,
-          archOut: 0.050, color: c.color, tendon: c.tendon, rad: 9,
+          archOut: 0.042, color: c.color, tendon: c.tendon, rad: 9,
           map: function (s) { return 1 - s * 0.9; } });
     }
   });
@@ -134,7 +134,7 @@
          c.p('acromion', 0.006, 0.000, -0.006), c.p('scapSpineLat', 0.006, -0.006, -0.016)],
         [c.p('deltTub', 0.000, 0.010, 0.000)],
         { strands: 14, r: 0.022, w: 1.6, h: 0.72, endA: 0.70, endB: 0.22, bulge: 0.95,
-          peak: 0.42, archOut: 0.042, color: c.color, tendon: c.tendon, rad: 10 });
+          peak: 0.42, archOut: 0.032, color: c.color, tendon: c.tendon, rad: 10 });
     }
   });
 

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Muscular Atlas 3D</title>
-<meta name="description" content="An interactive 3D model of the human muscular system that can be taken apart one muscle at a time.">
+<title>Human Atlas 3D</title>
+<meta name="description" content="An interactive 3D human figure that can be stripped from skin to muscle to bone, one muscle at a time.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:wght@500;600&display=swap">
@@ -17,11 +17,16 @@
 <div id="tooltip" hidden></div>
 
 <header id="topbar">
-  <button class="pill panel-btn" data-panel="panel-left">Muscles</button>
-  <h1>Muscular Atlas <span>· 3D</span></h1>
+  <button class="pill panel-btn" data-panel="panel-left">List</button>
+  <h1>Human Atlas <span>· 3D</span></h1>
+  <div class="seg modes">
+    <button data-mode="body" class="on">Body</button>
+    <button data-mode="muscles">Muscles</button>
+    <button data-mode="bones">Skeleton</button>
+  </div>
   <span id="det-count"></span>
   <span class="spacer"></span>
-  <button class="pill" id="btn-explode-all">Disassemble all</button>
+  <button class="pill" id="btn-explode-all"><span class="lg">Disassemble all</span><span class="sm">Explode</span></button>
   <button class="pill" id="btn-assemble">Re-assemble</button>
   <button class="pill" id="btn-reset">Reset</button>
   <button class="pill panel-btn" data-panel="panel-right">Info</button>
@@ -42,6 +47,11 @@
 </aside>
 
 <footer id="toolbar">
+  <div class="seg modes mobile-modes">
+    <button data-mode="body" class="on">Body</button>
+    <button data-mode="muscles">Muscles</button>
+    <button data-mode="bones">Skeleton</button>
+  </div>
   <div class="ctl">
     <label for="slider-explode">Spread</label>
     <input id="slider-explode" type="range" min="0" max="100" value="0">
@@ -72,13 +82,14 @@
   <label class="sw"><input type="checkbox" id="chk-skeleton" checked> Skeleton</label>
   <label class="sw"><input type="checkbox" id="chk-labels"> Labels</label>
   <label class="sw hide-sm"><input type="checkbox" id="chk-isolate"> Isolate</label>
+  <label class="sw"><input type="checkbox" id="chk-ghost" checked> Ghost skin</label>
   <label class="sw hide-sm"><input type="checkbox" id="chk-mirror" checked> Mirror</label>
   <label class="sw hide-sm"><input type="checkbox" id="chk-rotate"> Spin</label>
 </footer>
 
 <div id="loading">
-  <h1>Muscular Atlas 3D</h1>
-  <p>Generating anatomy…</p>
+  <h1>Human Atlas 3D</h1>
+  <p id="note">Generating anatomy…</p>
   <div class="track"><div id="bar"></div></div>
 </div>
 
@@ -87,6 +98,7 @@
 <script src="js/geom.js"></script>
 <script src="js/landmarks.js"></script>
 <script src="js/skeleton.js"></script>
+<script src="js/skin.js"></script>
 <script src="js/muscles.js"></script>
 <script src="js/muscles-upper.js"></script>
 <script src="js/muscles-lower.js"></script>

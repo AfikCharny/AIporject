@@ -46,6 +46,16 @@ body {
   letter-spacing: .005em;
 }
 #topbar h1 span { color: var(--dim); font-weight: 400; font-size: 15px; }
+.seg.modes { margin-left: 6px; border-color: #32404f; }
+.seg.mobile-modes { display: none; }
+.pill .sm { display: none; }
+.seg.modes button { padding: 7px 14px; font-size: 11.5px; letter-spacing: .07em;
+  text-transform: uppercase; background: rgba(21,27,35,.9); }
+.seg.modes button.on { background: var(--accent); color: #fff; }
+/* the muscle list and its controls are only meaningful in the muscle layer */
+body.mode-body #panel-left, body.mode-bones #panel-left,
+body.mode-body #btn-assemble, body.mode-bones #btn-assemble { opacity: .45; }
+body.mode-body #panel-left:hover, body.mode-bones #panel-left:hover { opacity: 1; }
 #det-count { color: var(--accent); font-family: var(--mono); font-size: 11.5px; letter-spacing: .02em; }
 .spacer { flex: 1; }
 .pill {
@@ -196,6 +206,11 @@ input[type=range] { width: 104px; accent-color: var(--accent); }
   #topbar h1 span, #det-count { display: none; }
   .pill { padding: 6px 9px; font-size: 12px; white-space: nowrap; }
   #btn-assemble { display: none; }
+  #topbar .seg.modes { display: none; }
+  .seg.mobile-modes { display: flex; order: -1; flex: 1 0 100%; justify-content: center; }
+  .mobile-modes button { flex: 1; padding: 8px 6px; }
+  .pill .lg { display: none; }
+  .pill .sm { display: inline; }
   aside {
     top: 50px; bottom: 156px; width: min(340px, calc(100vw - 20px)); left: 10px;
     transform: translateX(calc(-100% - 20px)); transition: transform .28s ease;

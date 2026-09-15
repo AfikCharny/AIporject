@@ -1,14 +1,19 @@
-# Muscular Atlas 3D
+# Human Atlas 3D
 
-An interactive 3D model of the human muscular system that runs in a browser with
-no build step, no model files and no network access. Every bone and every muscle
-is generated procedurally from code at load time, and any muscle can be taken off
-the body on its own.
+An interactive 3D human figure that runs in a browser with no build step, no
+model files and no network access. The figure starts as a skinned body and can
+be stripped back to muscle and then to bone, and any single muscle can be taken
+off the body on its own. Skin, skeleton and all 69 muscles are generated
+procedurally from code at load time.
 
 ![the model](docs/preview.png)
 
 ## What it does
 
+- **Three layers, one figure.** *Body* is the person with skin on; *Muscles*
+  fades the skin away and shows the musculature over the skeleton; *Skeleton*
+  leaves bone alone. While dissecting, a translucent ghost of the skin keeps the
+  body's outline for reference.
 - **69 muscles in one view**, 137 individual parts once the bilateral pairs are
   built, laid over a simplified skeleton.
 - **Disassemble any muscle individually.** Click it in the 3D view or in the
@@ -48,7 +53,25 @@ python3 -m http.server 8000
 | `I` | Isolate |
 | `X` | X-ray |
 | `L` | Labels |
+| `1` `2` `3` | Body, muscles, skeleton |
+| `G` | Ghost skin on/off |
 | `R` | Reset everything |
+
+## How the skin is built
+
+The body surface is an implicit surface. About seventy rounded cones and
+ellipsoids describe the figure's proportions, blended with a smooth union so
+limbs flow into the trunk without seams. That is unioned with a second field:
+the finished anatomy is voxelised, chamfer-transformed into a distance field and
+offset outwards by 9 mm, so the skin is guaranteed to enclose every muscle and
+takes its shape from the real muscle mass underneath. The combined field is
+polygonised with naive surface nets, smoothed with a Taubin filter and given
+normals from the field's own gradient.
+
+The head is a second, finer mesh at 3 mm, because a nose and an eye socket are
+features the body's 6 mm grid would erase. Hair, brows and lips are painted into
+the mesh's vertex colours rather than modelled: at this resolution a modelled
+hairline reads as a helmet, while a painted one follows the skull exactly.
 
 ## How the anatomy is built
 
@@ -81,6 +104,7 @@ css/styles.css        interface styling
 js/geom.js            belly / fan / plate geometry generators
 js/landmarks.js       skeletal attachment points and rib paths
 js/skeleton.js        the simplified skeleton
+js/skin.js            implicit-surface skin, head and surface nets
 js/muscles.js         head, neck, chest and abdomen
 js/muscles-upper.js   back, shoulder, arm and forearm
 js/muscles-lower.js   hip, thigh and leg
@@ -115,9 +139,12 @@ M({
 This is a teaching diagram, not a medical reference. Attachments, layering and
 actions follow standard anatomy, but the shapes are parametric approximations:
 fascicle counts are stylised, the skeleton is simplified, and the hands, feet,
-face and deep intrinsic muscles are represented only in outline.
+face and deep intrinsic muscles are represented only in outline. The figure is
+one body: a 1.80 m adult of athletic build, not a population.
 
 ## Console access
 
 The viewer is exposed as `HB.app` for scripting: `HB.app.detach('deltoid.R')`,
 `HB.app.select('soleus.L')`, `HB.app.detachAll(true)`, `HB.app.reset()`.
+`HB.app.rebuildSkin({ headOnly: true })` re-polygonises the skin with different
+options, which is how the body plan was tuned.

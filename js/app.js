@@ -20,6 +20,8 @@
 
   /* -------------------------------------------------------------- state */
   var state = {
+    mode: 'body',        // body -> muscles -> bones
+    ghost: true,         // keep a translucent skin while dissecting
     selected: null,
     hovered: null,
     hidden: {},
@@ -36,7 +38,7 @@
   };
 
   var scene, camera, renderer, controls, raycaster, pointer;
-  var muscleMeshes = [], byKey = {}, byId = {}, skeletonMesh;
+  var muscleMeshes = [], byKey = {}, byId = {}, skeletonMesh, skinMesh, skinMat, skinOpacity = 1;
   var leaderGeo, leaderLine;
   var labelLayer, tooltipEl;
   var clock;
@@ -56,7 +58,7 @@
 
     camera = new THREE.PerspectiveCamera(38, 1, 0.05, 40);
     controls = new HB.Orbit(camera, canvas);
-    controls.setView(0, Math.PI / 2 - 0.04, new THREE.Vector3(0, 1.00, 0), 3.30);
+    controls.setView(0, Math.PI / 2 - 0.04, new THREE.Vector3(0, 0.90, 0), 3.80);
 
     raycaster = new THREE.Raycaster();
     pointer = new THREE.Vector2();
@@ -83,8 +85,14 @@
     resize();
     bindPointer(canvas);
     buildMuscles(function () {
-      buildUI();
-      document.getElementById('loading').classList.add('gone');
+      document.getElementById('note').textContent = 'Wrapping the body in skin…';
+      requestAnimationFrame(function () {
+        skinMesh = HB.buildSkin({ meshes: muscleMeshes.concat([skeletonMesh]) });
+        scene.add(skinMesh);
+        skinMesh.traverse(function (n) { if (n.material) skinMat = n.material; });
+        buildUI();
+        document.getElementById('loading').classList.add('gone');
+      });
     });
     animate();
   }
@@ -203,6 +211,7 @@
   /* ------------------------------------------------------- visual update */
   function visibleFor(mesh) {
     var u = mesh.userData, d = u.def;
+    if (state.mode !== 'muscles') return false;
     if (state.hidden[u.key]) return false;
     if (d.layer > state.layerMax) return false;
     if (state.side !== 'both' && u.side !== 'M' && u.side !== state.side) return false;
@@ -265,7 +274,27 @@
     }
     leaderGeo.setDrawRange(0, ln * 2);
     leaderGeo.attributes.position.needsUpdate = true;
-    skeletonMesh.visible = state.skeleton;
+    skeletonMesh.visible = state.mode === 'bones' ||
+      (state.mode === 'muscles' && state.skeleton);
+    updateSkin(dt);
+  }
+
+  /* The skin fades rather than blinks, so it reads as peeling the body open. */
+  function updateSkin(dt) {
+    if (!skinMesh || !skinMat) return;
+    var solid = state.mode === 'body';
+    var target = solid ? 1 : (state.ghost ? 0.30 : 0);
+    var k = 1 - Math.pow(0.002, dt);
+    skinOpacity += (target - skinOpacity) * k;
+    if (Math.abs(skinOpacity - target) < 0.005) skinOpacity = target;
+    skinMesh.visible = skinOpacity > 0.012;
+    skinMat.opacity = skinOpacity;
+    skinMat.transparent = skinOpacity < 0.999;
+    skinMat.depthWrite = skinOpacity > 0.92;
+    // while dissecting, render only the inside of the far wall: the body keeps
+    // its silhouette without a veil over the muscles in front of it
+    var side = solid ? THREE.FrontSide : THREE.BackSide;
+    if (skinMat.side !== side) { skinMat.side = side; skinMat.needsUpdate = true; }
   }
 
   /* --------------------------------------------------------------- labels */
@@ -356,7 +385,7 @@
     });
     canvas.addEventListener('dblclick', function () {
       var hit = pick();
-      if (hit) { select(hit.userData.key); toggleDetach(hit.userData.key, true); focusOn(hit, 2.2); }
+      if (hit) { select(hit.userData.key); toggleDetach(hit.userData.key, true); focusOn(hit, 3.0); }
     });
     window.addEventListener('keydown', function (e) {
       if (e.target && /input|textarea/i.test(e.target.tagName)) return;
@@ -367,6 +396,10 @@
       else if (e.key === 'i' || e.key === 'I') { state.isolate = !state.isolate; syncUI(); }
       else if (e.key === 'r' || e.key === 'R') { resetAll(); }
       else if (e.key === 'l' || e.key === 'L') { state.labels = !state.labels; syncUI(); }
+      else if (e.key === '1') setMode('body');
+      else if (e.key === '2') setMode('muscles');
+      else if (e.key === '3') setMode('bones');
+      else if (e.key === 'g' || e.key === 'G') { state.ghost = !state.ghost; syncUI(); }
       else if (e.key === 'x' || e.key === 'X') {
         state.opacity = state.opacity > 0.9 ? 0.35 : 1; syncUI();
       }
@@ -374,6 +407,7 @@
   }
 
   function pick() {
+    if (state.mode !== 'muscles') return null;
     raycaster.setFromCamera(pointer, camera);
     var list = muscleMeshes.filter(function (m) { return m.visible; });
     var hits = raycaster.intersectObjects(list, false);
@@ -386,10 +420,16 @@
     var d = mesh.userData.dir;
     var az = Math.atan2(d.x, d.z);
     controls.frame(mesh.position.clone(),
-      Math.max(mesh.userData.radius * (pad || 1.6), 0.16), az, Math.PI / 2 - 0.06);
+      Math.max(mesh.userData.radius * (pad || 2.2), 0.22), az, Math.PI / 2 - 0.06);
   }
 
   /* -------------------------------------------------------------- actions */
+  function setMode(mode) {
+    state.mode = mode;
+    if (mode !== 'muscles') { state.selected = null; state.hovered = null; }
+    syncUI();
+  }
+
   function keysFor(key) {
     var m = byKey[key];
     if (!m) return [];
@@ -443,7 +483,7 @@
     state.isolate = false;
     state.side = 'both';
     state.selected = null;
-    controls.setView(0, Math.PI / 2 - 0.04, new THREE.Vector3(0, 1.00, 0), 3.30);
+    controls.setView(0, Math.PI / 2 - 0.04, new THREE.Vector3(0, 0.90, 0), 3.80);
     syncUI();
     renderDetails();
   }
@@ -480,13 +520,15 @@
           '<button class="ic det" title="Disassemble this muscle (D)">' + icon('detach') + '</button>' +
           '<button class="ic eye" title="Hide / show (H)">' + icon('eye') + '</button>';
         row.querySelector('.nm').addEventListener('click', function () {
+          if (state.mode !== 'muscles') setMode('muscles');
           var key = pickKey(d.id);
           select(key);
           var m = byKey[key];
-          if (m) focusOn(m, 2.6);
+          if (m) focusOn(m, 3.4);
         });
         row.querySelector('.det').addEventListener('click', function (e) {
           e.stopPropagation();
+          if (state.mode !== 'muscles') setMode('muscles');
           var key = pickKey(d.id);
           select(key);
           toggleDetach(key);
@@ -540,7 +582,14 @@
   }
 
   function wire() {
-    on('btn-explode-all', 'click', function () { detachAll(true); state.explode = 0.45; syncUI(); });
+    document.querySelectorAll('[data-mode]').forEach(function (b) {
+      b.addEventListener('click', function () { setMode(b.dataset.mode); });
+    });
+    on('chk-ghost', 'change', function (e) { state.ghost = e.target.checked; });
+    on('btn-explode-all', 'click', function () {
+      if (state.mode !== 'muscles') setMode('muscles');
+      detachAll(true); state.explode = 0.45; syncUI();
+    });
     on('btn-assemble', 'click', function () { detachAll(false); state.explode = 0; syncUI(); });
     on('btn-reset', 'click', resetAll);
     on('slider-explode', 'input', function (e) { state.explode = +e.target.value / 100; });
@@ -556,7 +605,7 @@
     });
     document.querySelectorAll('[data-view]').forEach(function (b) {
       b.addEventListener('click', function () {
-        var v = b.dataset.view, t = new THREE.Vector3(0, 1.00, 0), d = 3.30;
+        var v = b.dataset.view, t = new THREE.Vector3(0, 0.90, 0), d = 3.80;
         if (v === 'front') controls.setView(0, Math.PI / 2 - 0.04, t, d);
         if (v === 'back') controls.setView(Math.PI, Math.PI / 2 - 0.04, t, d);
         if (v === 'left') controls.setView(-Math.PI / 2, Math.PI / 2 - 0.04, t, d);
@@ -585,6 +634,12 @@
     check('chk-labels', state.labels);
     check('chk-isolate', state.isolate);
     check('chk-mirror', state.mirror);
+    check('chk-ghost', state.ghost);
+    document.querySelectorAll('[data-mode]').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.mode === state.mode);
+    });
+    document.body.classList.toggle('mode-body', state.mode === 'body');
+    document.body.classList.toggle('mode-bones', state.mode === 'bones');
     document.querySelectorAll('[data-side]').forEach(function (b) {
       b.classList.toggle('on', b.dataset.side === state.side);
     });
@@ -614,6 +669,20 @@
   function renderDetails() {
     if (!els.details) return;
     var m = state.selected && byKey[state.selected];
+    if (!m && state.mode !== 'muscles') {
+      els.details.innerHTML = state.mode === 'body'
+        ? '<div class="empty"><h3>The whole body</h3>' +
+          '<p>This is the figure with its skin on. Switch to <b>Muscles</b> to strip the ' +
+          'skin away and work through 69 muscles, or <b>Skeleton</b> for bone alone.</p>' +
+          '<p class="keys"><b>Drag</b> orbit · <b>Wheel</b> zoom · <b>Shift+drag</b> pan · ' +
+          '<b>1</b> body · <b>2</b> muscles · <b>3</b> skeleton</p></div>'
+        : '<div class="empty"><h3>Skeleton</h3>' +
+          '<p>Every muscle in this atlas is built onto these landmarks. Switch back to ' +
+          '<b>Muscles</b> to put them back on the bone.</p>' +
+          '<p class="keys"><b>1</b> body · <b>2</b> muscles · <b>3</b> skeleton · ' +
+          '<b>G</b> ghost skin</p></div>';
+      return;
+    }
     if (!m) {
       els.details.innerHTML = '<div class="empty"><h3>Nothing selected</h3>' +
         '<p>Click any muscle in the 3D view, or pick one from the list, to read its attachments and take it off the body.</p>' +
@@ -648,7 +717,7 @@
       hide(m.userData.key); syncUI();
     });
     document.getElementById('d-focus').addEventListener('click', function () {
-      focusOn(m, 2.4);
+      focusOn(m, 3.2);
     });
   }
 
@@ -667,6 +736,13 @@
     state: state, byKey: byKey, byId: byId, meshes: muscleMeshes,
     select: select, detach: toggleDetach, hide: hide, detachAll: detachAll,
     reset: resetAll, sync: syncUI,
+    rebuildSkin: function (opts) {
+      if (skinMesh) scene.remove(skinMesh);
+      skinMesh = HB.buildSkin(Object.assign(
+        { meshes: muscleMeshes.concat([skeletonMesh]) }, opts || {}));
+      scene.add(skinMesh);
+      return skinMesh.userData;
+    },
     view: function (az, polar, tx, ty, tz, dist) {
       controls.setView(az, polar, new THREE.Vector3(tx, ty, tz), dist);
     },

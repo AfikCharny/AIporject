@@ -159,7 +159,7 @@
          c.p('costalArch', 0.004, 0.006, 0.000)],
         [c.p('humHead', -0.004, -0.028, 0.016), c.p('humHead', 0.000, -0.046, 0.012)],
         { strands: 18, r: 0.026, w: 2.05, h: 0.56, endA: 0.82, endB: 0.24, bulge: 0.85,
-          peak: 0.42, archOut: 0.052, color: c.color, tendon: c.tendon,
+          peak: 0.42, archOut: 0.042, color: c.color, tendon: c.tendon,
           rad: 11, map: function (s) { return 1 - s * 0.85; } });
     }
   });

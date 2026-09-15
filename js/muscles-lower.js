@@ -20,7 +20,7 @@
         [c.p('iliacPost', -0.010, 0.000, -0.008), c.p('sacrum', 0.016, -0.010, 0.000), c.p('coccyx', 0.014, -0.004, 0.004)],
         [c.p('greaterTroch', 0.006, -0.010, -0.014), c.p('femurLat', 0.004, 0.050, -0.020), c.p('femurMid', -0.008, 0.024, -0.026)],
         { strands: 15, r: 0.030, w: 1.9, h: 0.52, endA: 0.80, endB: 0.42, bulge: 0.8,
-          peak: 0.45, archOut: 0.072, color: c.color, tendon: c.tendon, rad: 10,
+          peak: 0.45, archOut: 0.058, color: c.color, tendon: c.tendon, rad: 10,
           map: function (s) { return Math.pow(s, 1.2); } });
     }
   });
