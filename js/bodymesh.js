@@ -1,10 +1,11 @@
 /*
  * bodymesh.js — load the supplied base mesh as the figure's skin.
  *
- * assets/body.bin is produced by tools/prepare-mesh.js from the uploaded OBJ:
- * "HBM1", uint32 vertex count, uint32 index count, then positions and normals
- * as float32 and indices as uint32, already normalised to a 1.80 m figure
- * standing at y = 0.
+ * assets/body-mesh.js is produced by tools/prepare-mesh.js from the uploaded
+ * OBJ. It sets HB.BODY_MESH_B64: base64 of "HBM1", uint32 vertex count, uint32
+ * index count, then positions and normals as float32 and indices as uint32,
+ * already normalised to a 1.80 m figure standing at y = 0. Shipping it as a
+ * script rather than a binary keeps the page working when opened from disk.
  */
 (function (global) {
   'use strict';
@@ -30,6 +31,13 @@
     return geo;
   }
 
+  function decode(b64) {
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  }
+
   HB.loadBody = function (url, onDone, onError) {
     var t0 = performance.now();
     function build(buffer) {
@@ -49,13 +57,11 @@
       group.userData.buildMs = Math.round(performance.now() - t0);
       onDone(group);
     }
-    fetch(url).then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.arrayBuffer();
-    }).then(build).catch(function (err) {
-      // file:// has no fetch access to local files; say so plainly
-      if (onError) onError(err);
-      else throw err;
-    });
+    try {
+      if (!HB.BODY_MESH_B64) throw new Error('assets/body-mesh.js did not load');
+      build(decode(HB.BODY_MESH_B64));
+    } catch (err) {
+      if (onError) onError(err); else throw err;
+    }
   };
 })(window);

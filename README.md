@@ -37,19 +37,16 @@ to that body.
 
 ## Running it
 
-Serve the folder and open it. A local server is needed because the body mesh is
-loaded from `assets/body.bin`, which a browser will not fetch from a `file://`
-page:
+Open `index.html` in a browser. That is the whole install. Nothing is fetched at
+runtime: three.js is bundled in `vendor/`, and the body mesh ships as base64
+inside `assets/body-mesh.js`, so the page works straight from disk.
+
+To serve it instead:
 
 ```sh
 python3 -m http.server 8000
 # then open http://localhost:8000
 ```
-
-Nothing is fetched from the network: `vendor/three.min.js` is bundled, and the
-page falls back to the three.js CDN only if that file is missing. If the body
-mesh cannot be loaded the viewer says so and opens in the muscle layer, which
-needs no assets at all.
 
 ## Controls
 
@@ -72,9 +69,9 @@ needs no assets at all.
 
 ## Fitting the anatomy to the body
 
-`tools/prepare-mesh.js` turns the supplied OBJ into `assets/body.bin`: scaled to
-a 1.80 m figure, stood on the floor, triangulated, smooth-normalled, about
-1.2 MB.
+`tools/prepare-mesh.js` turns the supplied OBJ into `assets/body-mesh.js`:
+scaled to a 1.80 m figure, stood on the floor, triangulated, smooth-normalled,
+then base64 inside a script so no fetch is needed.
 
 The muscles are authored against one particular figure, and the supplied mesh is
 a different person in a different pose, with the arms held well away from the
@@ -128,7 +125,7 @@ js/skeleton.js        the simplified skeleton
 js/bodymesh.js        loads the supplied body mesh
 js/retarget.js        fits the anatomy to that body
 js/gym.js             which muscles lifters train, and what trains them
-assets/body.bin       the body mesh, built by tools/prepare-mesh.js
+assets/body-mesh.js   the body mesh, built by tools/prepare-mesh.js
 js/muscles.js         head, neck, chest and abdomen
 js/muscles-upper.js   back, shoulder, arm and forearm
 js/muscles-lower.js   hip, thigh and leg
@@ -161,7 +158,7 @@ M({
 ## Credits and accuracy
 
 The body mesh is the `FinalBaseMesh.obj` supplied for this project; check its
-licence before redistributing the built `assets/body.bin`. Everything else here
+licence before redistributing the built `assets/body-mesh.js`. Everything else here
 is generated from code.
 
 This is a teaching diagram, not a medical reference. Attachments, layering and

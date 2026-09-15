@@ -87,7 +87,7 @@
     bindPointer(canvas);
     buildMuscles(function () {
       document.getElementById('note').textContent = 'Loading the body mesh…';
-      HB.loadBody('assets/body.bin', function (group) {
+      HB.loadBody(null, function (group) {
         skinMesh = group;
         scene.add(skinMesh);
         skinMesh.traverse(function (n) { if (n.material) skinMat = n.material; });
@@ -96,8 +96,8 @@
       }, function (err) {
         // without the body mesh the anatomy still works; say what happened
         var note = document.getElementById('note');
-        note.innerHTML = 'Could not load assets/body.bin (' + err.message +
-          ').<br>Serve the folder over http rather than opening the file directly.';
+        note.innerHTML = 'Could not load the body mesh (' + err.message +
+          ').<br>The muscle and skeleton layers still work.';
         note.classList.add('err');
         state.mode = 'muscles';
         buildUI();
@@ -744,7 +744,9 @@
       els.details.innerHTML = state.mode === 'body'
         ? '<div class="empty"><h3>The whole body</h3>' +
           '<p>This is the figure with its skin on. Switch to <b>Muscles</b> to strip the ' +
-          'skin away and work through 69 muscles, or <b>Skeleton</b> for bone alone.</p>' +
+          'skin away and work through ' + shownMuscles().length +
+          (state.gymOnly ? ' muscles a lifter trains' : ' muscles') +
+          ', or <b>Skeleton</b> for bone alone.</p>' +
           '<p class="keys"><b>Drag</b> orbit · <b>Wheel</b> zoom · <b>Shift+drag</b> pan · ' +
           '<b>1</b> body · <b>2</b> muscles · <b>3</b> skeleton</p></div>'
         : '<div class="empty"><h3>Skeleton</h3>' +

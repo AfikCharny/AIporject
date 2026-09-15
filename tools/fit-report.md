@@ -70,7 +70,7 @@ slider.
 ## Re-running the measurements
 
 ```sh
-node tools/prepare-mesh.js path/to/FinalBaseMesh.obj assets/body.bin
+node tools/prepare-mesh.js path/to/FinalBaseMesh.obj assets/body-mesh.js
 ```
 
 The joint numbers above were produced by slicing the mesh in Python; the values
