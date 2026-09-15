@@ -356,7 +356,7 @@
     });
     canvas.addEventListener('dblclick', function () {
       var hit = pick();
-      if (hit) { select(hit.userData.key); toggleDetach(hit.userData.key, true); focusOn(hit); }
+      if (hit) { select(hit.userData.key); toggleDetach(hit.userData.key, true); focusOn(hit, 2.2); }
     });
     window.addEventListener('keydown', function (e) {
       if (e.target && /input|textarea/i.test(e.target.tagName)) return;
@@ -380,8 +380,13 @@
     return hits.length ? hits[0].object : null;
   }
 
-  function focusOn(mesh) {
-    controls.frame(mesh.position.clone(), Math.max(mesh.userData.radius * 1.6, 0.16));
+  /* Frame a muscle, swinging round to the side of the body it actually sits on
+     so a back muscle isn't left hidden behind the chest. */
+  function focusOn(mesh, pad) {
+    var d = mesh.userData.dir;
+    var az = Math.atan2(d.x, d.z);
+    controls.frame(mesh.position.clone(),
+      Math.max(mesh.userData.radius * (pad || 1.6), 0.16), az, Math.PI / 2 - 0.06);
   }
 
   /* -------------------------------------------------------------- actions */
@@ -478,7 +483,7 @@
           var key = pickKey(d.id);
           select(key);
           var m = byKey[key];
-          if (m) controls.frame(m.position.clone(), Math.max(m.userData.radius * 2.6, 0.30));
+          if (m) focusOn(m, 2.6);
         });
         row.querySelector('.det').addEventListener('click', function (e) {
           e.stopPropagation();
@@ -643,7 +648,7 @@
       hide(m.userData.key); syncUI();
     });
     document.getElementById('d-focus').addEventListener('click', function () {
-      controls.frame(m.position.clone(), Math.max(m.userData.radius * 2.4, 0.26));
+      focusOn(m, 2.4);
     });
   }
 
