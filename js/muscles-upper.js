@@ -133,8 +133,8 @@
         [c.p('clavMid', 0.034, -0.004, 0.012), c.p('acromion', -0.006, 0.000, 0.014),
          c.p('acromion', 0.006, 0.000, -0.006), c.p('scapSpineLat', 0.006, -0.006, -0.016)],
         [c.p('deltTub', 0.000, 0.010, 0.000)],
-        { strands: 14, r: 0.022, w: 1.6, h: 0.72, endA: 0.70, endB: 0.22, bulge: 0.95,
-          peak: 0.42, archOut: 0.032, color: c.color, tendon: c.tendon, rad: 10 });
+        { strands: 14, r: 0.020, w: 1.55, h: 0.70, endA: 0.70, endB: 0.22, bulge: 0.95,
+          peak: 0.42, archOut: 0.024, color: c.color, tendon: c.tendon, rad: 10 });
     }
   });
 

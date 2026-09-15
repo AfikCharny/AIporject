@@ -123,6 +123,7 @@ aside {
   line-height: 1.2; text-wrap: balance; }
 .lat { margin: 2px 0 8px; color: var(--dim); font-style: italic; font-size: 12.5px; }
 .tags { margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tag.gym { background: rgba(226,86,107,.14); border-color: #5b3038; color: #f0a9b4; }
 .tag { background: #1b222b; border: 1px solid var(--line); color: var(--dim);
   border-radius: 999px; padding: 3px 9px; font-family: var(--mono); font-size: 10.5px;
   letter-spacing: .02em; }
@@ -191,6 +192,7 @@ input[type=range] { width: 104px; accent-color: var(--accent); }
 }
 #loading.gone { opacity: 0; pointer-events: none; }
 #loading h1 { margin: 0; font-family: var(--display); font-size: 26px; font-weight: 600; letter-spacing: .01em; }
+#loading p.err { color: #e2566b; text-transform: none; letter-spacing: 0; line-height: 1.6; text-align: center; }
 #loading p { margin: 0; color: var(--dim); font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
 .track { width: min(260px, 60vw); height: 3px; background: #1d242e; border-radius: 3px; overflow: hidden; }
 #bar { height: 100%; width: 0; background: var(--accent); transition: width .12s linear; }

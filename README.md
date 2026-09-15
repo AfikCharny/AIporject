@@ -1,10 +1,14 @@
 # Human Atlas 3D
 
-An interactive 3D human figure that runs in a browser with no build step, no
-model files and no network access. The figure starts as a skinned body and can
-be stripped back to muscle and then to bone, and any single muscle can be taken
-off the body on its own. Skin, skeleton and all 69 muscles are generated
-procedurally from code at load time.
+An interactive 3D human figure that runs in a browser with no build step. The
+figure starts as a skinned body and can be stripped back to muscle and then to
+bone, and any single muscle can be taken off the body on its own. By default it
+shows only the muscles a lifter actually trains, grouped the way a training
+programme is.
+
+The body is the supplied `FinalBaseMesh.obj`, converted to a compact binary. The
+skeleton and all 69 muscles are generated procedurally at load time and fitted
+to that body.
 
 ![the model](docs/preview.png)
 
@@ -12,9 +16,14 @@ procedurally from code at load time.
 
 - **Three layers, one figure.** *Body* is the person with skin on; *Muscles*
   fades the skin away and shows the musculature over the skeleton; *Skeleton*
-  leaves bone alone. While dissecting, a translucent ghost of the skin keeps the
-  body's outline for reference.
-- **69 muscles in one view**, 137 individual parts once the bilateral pairs are
+  leaves bone alone. While dissecting, a translucent ghost of the body keeps its
+  outline for reference.
+- **Gym filter, on by default.** 51 muscles that a lifter trains, grouped as
+  chest, back, shoulders, arms, forearms, core, glutes and hips, quads,
+  hamstrings, adductors, calves and neck, each naming the exercises that work
+  it. Searching "bench" or "deadlift" finds the muscles those lifts train.
+  Switch to *All muscles* for the full 69, respiratory and facial ones included.
+- **69 muscles in the atlas**, 137 individual parts once the bilateral pairs are
   built, laid over a simplified skeleton.
 - **Disassemble any muscle individually.** Click it in the 3D view or in the
   list and press *Disassemble*; it floats off the body along its own outward
@@ -28,16 +37,19 @@ procedurally from code at load time.
 
 ## Running it
 
-Open `index.html` in a browser. That is the whole install. Nothing is fetched at
-runtime: `vendor/three.min.js` is bundled, and the page falls back to the three.js
-CDN only if that file is missing.
-
-To serve it locally instead:
+Serve the folder and open it. A local server is needed because the body mesh is
+loaded from `assets/body.bin`, which a browser will not fetch from a `file://`
+page:
 
 ```sh
 python3 -m http.server 8000
 # then open http://localhost:8000
 ```
+
+Nothing is fetched from the network: `vendor/three.min.js` is bundled, and the
+page falls back to the three.js CDN only if that file is missing. If the body
+mesh cannot be loaded the viewer says so and opens in the muscle layer, which
+needs no assets at all.
 
 ## Controls
 
@@ -54,24 +66,33 @@ python3 -m http.server 8000
 | `X` | X-ray |
 | `L` | Labels |
 | `1` `2` `3` | Body, muscles, skeleton |
+| `A` | Gym muscles / all muscles |
 | `G` | Ghost skin on/off |
 | `R` | Reset everything |
 
-## How the skin is built
+## Fitting the anatomy to the body
 
-The body surface is an implicit surface. About seventy rounded cones and
-ellipsoids describe the figure's proportions, blended with a smooth union so
-limbs flow into the trunk without seams. That is unioned with a second field:
-the finished anatomy is voxelised, chamfer-transformed into a distance field and
-offset outwards by 9 mm, so the skin is guaranteed to enclose every muscle and
-takes its shape from the real muscle mass underneath. The combined field is
-polygonised with naive surface nets, smoothed with a Taubin filter and given
-normals from the field's own gradient.
+`tools/prepare-mesh.js` turns the supplied OBJ into `assets/body.bin`: scaled to
+a 1.80 m figure, stood on the floor, triangulated, smooth-normalled, about
+1.2 MB.
 
-The head is a second, finer mesh at 3 mm, because a nose and an eye socket are
-features the body's 6 mm grid would erase. Hair, brows and lips are painted into
-the mesh's vertex colours rather than modelled: at this resolution a modelled
-hairline reads as a helmet, while a painted one follows the skull exactly.
+The muscles are authored against one particular figure, and the supplied mesh is
+a different person in a different pose, with the arms held well away from the
+body. Rather than re-author every muscle, the finished geometry is warped.
+`js/retarget.js` holds nine bones per side, each pairing a segment of the
+authored body with the matching segment measured off the mesh, and each carrying
+a rotation, a scale along its axis and a scale across it. A vertex takes a
+weighted blend of the bones near it.
+
+Two details make that work. Distances are measured in units of each bone's own
+thickness, so a centimetre from the humerus counts as close while a centimetre
+from the trunk's axis is still deep inside the chest. And a muscle only sees the
+bones it actually articulates on, with a weight: the pectoral sheet is written
+as `['thorax', 'clavicle*0.35', 'upperArm*0.03']`, which keeps it lying on the
+chest wall while its tendon end still follows the humerus out to the abducted
+arm. Without either, the arm captures the whole chest and drags it sideways.
+
+`tools/fit-report.md` records the measurements and how closely the result fits.
 
 ## How the anatomy is built
 
@@ -104,7 +125,10 @@ css/styles.css        interface styling
 js/geom.js            belly / fan / plate geometry generators
 js/landmarks.js       skeletal attachment points and rib paths
 js/skeleton.js        the simplified skeleton
-js/skin.js            implicit-surface skin, head and surface nets
+js/bodymesh.js        loads the supplied body mesh
+js/retarget.js        fits the anatomy to that body
+js/gym.js             which muscles lifters train, and what trains them
+assets/body.bin       the body mesh, built by tools/prepare-mesh.js
 js/muscles.js         head, neck, chest and abdomen
 js/muscles-upper.js   back, shoulder, arm and forearm
 js/muscles-lower.js   hip, thigh and leg
@@ -134,17 +158,21 @@ M({
 });
 ```
 
-## Accuracy
+## Credits and accuracy
+
+The body mesh is the `FinalBaseMesh.obj` supplied for this project; check its
+licence before redistributing the built `assets/body.bin`. Everything else here
+is generated from code.
 
 This is a teaching diagram, not a medical reference. Attachments, layering and
 actions follow standard anatomy, but the shapes are parametric approximations:
 fascicle counts are stylised, the skeleton is simplified, and the hands, feet,
 face and deep intrinsic muscles are represented only in outline. The figure is
-one body: a 1.80 m adult of athletic build, not a population.
+one body, not a population, and the exercise lists name the lifts a muscle
+contributes to rather than ranking them.
 
 ## Console access
 
 The viewer is exposed as `HB.app` for scripting: `HB.app.detach('deltoid.R')`,
 `HB.app.select('soleus.L')`, `HB.app.detachAll(true)`, `HB.app.reset()`.
-`HB.app.rebuildSkin({ headOnly: true })` re-polygonises the skin with different
-options, which is how the body plan was tuned.
+`HB.buildRetarget()` returns the fitting rig, and `HB.GYM` is the training table.

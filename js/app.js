@@ -21,6 +21,7 @@
   /* -------------------------------------------------------------- state */
   var state = {
     mode: 'body',        // body -> muscles -> bones
+    gymOnly: true,       // show only the muscles a lifter trains
     ghost: true,         // keep a translucent skin while dissecting
     selected: null,
     hovered: null,
@@ -78,20 +79,31 @@
     leaderLine.frustumCulled = false;
     scene.add(leaderLine);
 
-    skeletonMesh = HB.buildSkeleton();
+    skeletonMesh = HB.buildSkeleton(HB.buildRetarget());
     scene.add(skeletonMesh);
 
     window.addEventListener('resize', resize);
     resize();
     bindPointer(canvas);
     buildMuscles(function () {
-      document.getElementById('note').textContent = 'Wrapping the body in skin…';
-      requestAnimationFrame(function () {
-        skinMesh = HB.buildSkin({ meshes: muscleMeshes.concat([skeletonMesh]) });
+      document.getElementById('note').textContent = 'Loading the body mesh…';
+      HB.loadBody('assets/body.bin', function (group) {
+        skinMesh = group;
         scene.add(skinMesh);
         skinMesh.traverse(function (n) { if (n.material) skinMat = n.material; });
         buildUI();
         document.getElementById('loading').classList.add('gone');
+      }, function (err) {
+        // without the body mesh the anatomy still works; say what happened
+        var note = document.getElementById('note');
+        note.innerHTML = 'Could not load assets/body.bin (' + err.message +
+          ').<br>Serve the folder over http rather than opening the file directly.';
+        note.classList.add('err');
+        state.mode = 'muscles';
+        buildUI();
+        setTimeout(function () {
+          document.getElementById('loading').classList.add('gone');
+        }, 3200);
       });
     });
     animate();
@@ -168,7 +180,9 @@
   }
 
   function buildMuscles(done) {
+    HB.applyGym();
     var defs = HB.MUSCLES, i = 0;
+    var fit = HB.buildRetarget();
     var bar = document.getElementById('bar');
     function step() {
       var t0 = performance.now();
@@ -179,7 +193,7 @@
           color: def.tendonous ? 0xdbd0b8 : shade(GROUP_COLOR[def.group] || 0xb2394a, (i % 5) - 2),
           tendon: TENDON
         };
-        var geo = def.build(ctx);
+        var geo = fit.geometry(def.build(ctx), HB.bonesFor(def));
         if (def.side === 'mid') {
           add(makeMesh(def, geo, 'M'));
         } else {
@@ -212,6 +226,7 @@
   function visibleFor(mesh) {
     var u = mesh.userData, d = u.def;
     if (state.mode !== 'muscles') return false;
+    if (state.gymOnly && !d.gym) return false;
     if (state.hidden[u.key]) return false;
     if (d.layer > state.layerMax) return false;
     if (state.side !== 'both' && u.side !== 'M' && u.side !== state.side) return false;
@@ -400,6 +415,9 @@
       else if (e.key === '2') setMode('muscles');
       else if (e.key === '3') setMode('bones');
       else if (e.key === 'g' || e.key === 'G') { state.ghost = !state.ghost; syncUI(); }
+      else if (e.key === 'a' || e.key === 'A') {
+        state.gymOnly = !state.gymOnly; renderList(); syncUI();
+      }
       else if (e.key === 'x' || e.key === 'X') {
         state.opacity = state.opacity > 0.9 ? 0.35 : 1; syncUI();
       }
@@ -496,9 +514,42 @@
     els.search = document.getElementById('search');
     els.count = document.getElementById('count');
 
+    renderList();
+
+    els.search.addEventListener('input', function () {
+      var q = els.search.value.trim().toLowerCase();
+      var shown = 0;
+      document.querySelectorAll('.grp').forEach(function (sec) {
+        var any = false;
+        sec.querySelectorAll('.row').forEach(function (row) {
+          var d = HB.MUSCLES.find(function (x) { return x.id === row.dataset.id; });
+          var hay = d.name + ' ' + d.latin + ' ' + d.group + ' ' + d.action +
+                    (d.gym ? ' ' + d.gym.group + ' ' + d.gym.trains : '');
+          var hit = !q || hay.toLowerCase().indexOf(q) >= 0;
+          row.hidden = !hit;
+          if (hit) { any = true; shown++; }
+        });
+        sec.hidden = !any;
+      });
+      if (q) els.count.textContent = shown + ' matching'; else updateCount();
+    });
+
+    wire();
+    syncUI();
+    renderDetails();
+  }
+
+  /* The list is grouped the way the current filter thinks about the body:
+     by training group under the gym filter, by anatomical region otherwise. */
+  function renderList() {
+    if (!els.list) return;
+    els.list.innerHTML = '';
     var frag = document.createDocumentFragment();
-    GROUPS.forEach(function (gname) {
-      var defs = HB.MUSCLES.filter(function (d) { return d.group === gname; });
+    var groups = state.gymOnly ? HB.GYM_GROUPS : GROUPS;
+    groups.forEach(function (gname) {
+      var defs = HB.MUSCLES.filter(function (d) {
+        return state.gymOnly ? (d.gym && d.gym.group === gname) : d.group === gname;
+      });
       if (!defs.length) return;
       var sec = document.createElement('section');
       sec.className = 'grp';
@@ -506,8 +557,8 @@
       var head = document.createElement('div');
       head.className = 'grp-h';
       head.innerHTML = '<span class="dot" style="background:#' +
-        new THREE.Color(GROUP_COLOR[gname]).getHexString() + '"></span><span>' + gname +
-        '</span><span class="n">' + defs.length + '</span>';
+        new THREE.Color(GROUP_COLOR[defs[0].group] || 0xb2394a).getHexString() + '"></span><span>' +
+        gname + '</span><span class="n">' + defs.length + '</span>';
       head.addEventListener('click', function () { sec.classList.toggle('closed'); });
       sec.appendChild(head);
       defs.forEach(function (d) {
@@ -544,27 +595,21 @@
       frag.appendChild(sec);
     });
     els.list.appendChild(frag);
-    els.count.textContent = HB.MUSCLES.length + ' muscles · ' + muscleMeshes.length + ' parts';
+    updateCount();
+    if (els.search.value) els.search.dispatchEvent(new Event('input'));
+    highlightRow();
+  }
 
-    els.search.addEventListener('input', function () {
-      var q = els.search.value.trim().toLowerCase();
-      var shown = 0;
-      document.querySelectorAll('.grp').forEach(function (sec) {
-        var any = false;
-        sec.querySelectorAll('.row').forEach(function (row) {
-          var d = HB.MUSCLES.find(function (x) { return x.id === row.dataset.id; });
-          var hit = !q || (d.name + ' ' + d.latin + ' ' + d.group + ' ' + d.action).toLowerCase().indexOf(q) >= 0;
-          row.hidden = !hit;
-          if (hit) { any = true; shown++; }
-        });
-        sec.hidden = !any;
-      });
-      els.count.textContent = q ? shown + ' matching' : HB.MUSCLES.length + ' muscles · ' + muscleMeshes.length + ' parts';
-    });
+  function shownMuscles() {
+    return HB.MUSCLES.filter(function (d) { return !state.gymOnly || d.gym; });
+  }
 
-    wire();
-    syncUI();
-    renderDetails();
+  function updateCount() {
+    if (!els.count) return;
+    var n = shownMuscles().length;
+    els.count.textContent = state.gymOnly
+      ? n + ' gym muscles · ' + HB.MUSCLES.length + ' in the atlas'
+      : n + ' muscles · ' + muscleMeshes.length + ' parts';
   }
 
   function pickKey(id) {
@@ -600,6 +645,17 @@
     on('chk-isolate', 'change', function (e) { state.isolate = e.target.checked; });
     on('chk-mirror', 'change', function (e) { state.mirror = e.target.checked; });
     on('chk-rotate', 'change', function (e) { controls.autoRotate = e.target.checked; });
+    document.querySelectorAll('[data-set]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        state.gymOnly = b.dataset.set === 'gym';
+        if (state.selected) {
+          var sel = byKey[state.selected];
+          if (sel && state.gymOnly && !sel.userData.def.gym) select(null);
+        }
+        renderList();
+        syncUI();
+      });
+    });
     document.querySelectorAll('[data-side]').forEach(function (b) {
       b.addEventListener('click', function () { state.side = b.dataset.side; syncUI(); });
     });
@@ -640,9 +696,24 @@
     });
     document.body.classList.toggle('mode-body', state.mode === 'body');
     document.body.classList.toggle('mode-bones', state.mode === 'bones');
+    document.querySelectorAll('[data-set]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        state.gymOnly = b.dataset.set === 'gym';
+        if (state.selected) {
+          var sel = byKey[state.selected];
+          if (sel && state.gymOnly && !sel.userData.def.gym) select(null);
+        }
+        renderList();
+        syncUI();
+      });
+    });
     document.querySelectorAll('[data-side]').forEach(function (b) {
       b.classList.toggle('on', b.dataset.side === state.side);
     });
+    document.querySelectorAll('[data-set]').forEach(function (b) {
+      b.classList.toggle('on', (b.dataset.set === 'gym') === state.gymOnly);
+    });
+    updateCount();
     var lay = document.getElementById('layer-label');
     if (lay) lay.textContent = ['', 'superficial', 'through intermediate', 'all layers'][state.layerMax];
     highlightRow();
@@ -698,11 +769,13 @@
       '<div class="d-head"><h2>' + d.name + '</h2><p class="lat">' + d.latin + '</p>' +
       '<p class="tags"><span class="tag">' + d.group + '</span>' +
       '<span class="tag">Layer ' + d.layer + ' · ' + ['', 'superficial', 'intermediate', 'deep'][d.layer] + '</span>' +
+      (d.gym ? '<span class="tag gym">' + d.gym.group + '</span>' : '') +
       '<span class="tag">' + (m.userData.side === 'M' ? 'midline' : (m.userData.side === 'R' ? 'right side' : 'left side')) + '</span></p></div>' +
       '<dl>' +
       '<dt>Origin</dt><dd>' + d.origin + '</dd>' +
       '<dt>Insertion</dt><dd>' + d.insertion + '</dd>' +
       '<dt>Action</dt><dd>' + d.action + '</dd>' +
+      (d.gym ? '<dt>Trained by</dt><dd>' + d.gym.trains + '</dd>' : '') +
       '<dt>Innervation</dt><dd>' + (d.nerve || '—') + '</dd>' +
       '</dl>' +
       '<div class="d-btns">' +

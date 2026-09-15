@@ -1,0 +1,69 @@
+/*
+ * prepare-mesh.js — turn the supplied OBJ base mesh into the compact binary the
+ * viewer loads.
+ *
+ *   node tools/prepare-mesh.js path/to/FinalBaseMesh.obj assets/body.bin
+ *
+ * The mesh is normalised on the way through: scaled to a 1.80 m figure, centred
+ * left to right, stood on the floor at y = 0, triangulated, and given smooth
+ * vertex normals. Format: "HBM1", uint32 vertices, uint32 indices, then
+ * positions, normals (float32) and indices (uint32).
+ */
+const fs = require('fs');
+
+const src = process.argv[2];
+const dst = process.argv[3] || 'assets/body.bin';
+const text = fs.readFileSync(src, 'utf8');
+
+const pos = [];
+const faces = [];
+for (const line of text.split('\n')) {
+  if (line.startsWith('v ')) {
+    const p = line.split(/\s+/);
+    pos.push(+p[1], +p[2], +p[3]);
+  } else if (line.startsWith('f ')) {
+    const idx = line.trim().split(/\s+/).slice(1)
+      .map(tok => parseInt(tok.split('/')[0], 10) - 1);
+    for (let i = 1; i + 1 < idx.length; i++) faces.push(idx[0], idx[i], idx[i + 1]);
+  }
+}
+
+// ---- normalise ------------------------------------------------------------
+let minY = Infinity, maxY = -Infinity, minX = Infinity, maxX = -Infinity;
+for (let i = 0; i < pos.length; i += 3) {
+  minX = Math.min(minX, pos[i]); maxX = Math.max(maxX, pos[i]);
+  minY = Math.min(minY, pos[i + 1]); maxY = Math.max(maxY, pos[i + 1]);
+}
+const scale = 1.80 / (maxY - minY);
+const cx = (minX + maxX) / 2;
+const P = new Float32Array(pos.length);
+for (let i = 0; i < pos.length; i += 3) {
+  P[i] = (pos[i] - cx) * scale;
+  P[i + 1] = (pos[i + 1] - minY) * scale;
+  P[i + 2] = pos[i + 2] * scale;
+}
+
+// ---- smooth normals -------------------------------------------------------
+const N = new Float32Array(P.length);
+for (let f = 0; f < faces.length; f += 3) {
+  const a = faces[f] * 3, b = faces[f + 1] * 3, c = faces[f + 2] * 3;
+  const ux = P[b] - P[a], uy = P[b + 1] - P[a + 1], uz = P[b + 2] - P[a + 2];
+  const vx = P[c] - P[a], vy = P[c + 1] - P[a + 1], vz = P[c + 2] - P[a + 2];
+  const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+  for (const o of [a, b, c]) { N[o] += nx; N[o + 1] += ny; N[o + 2] += nz; }
+}
+for (let i = 0; i < N.length; i += 3) {
+  const l = Math.hypot(N[i], N[i + 1], N[i + 2]) || 1;
+  N[i] /= l; N[i + 1] /= l; N[i + 2] /= l;
+}
+
+const I = new Uint32Array(faces);
+const header = Buffer.alloc(12);
+header.write('HBM1', 0, 'ascii');
+header.writeUInt32LE(P.length / 3, 4);
+header.writeUInt32LE(I.length, 8);
+fs.writeFileSync(dst, Buffer.concat([
+  header, Buffer.from(P.buffer), Buffer.from(N.buffer), Buffer.from(I.buffer)
+]));
+console.log(`${dst}: ${P.length / 3} vertices, ${I.length / 3} triangles, ` +
+  `${(fs.statSync(dst).size / 1e6).toFixed(2)} MB (scale ${scale.toFixed(5)})`);
