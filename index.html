@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Human Atlas 3D</title>
+<meta name="description" content="An interactive 3D human figure that can be stripped from skin to muscle to bone, one muscle at a time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:wght@500;600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<canvas id="view"></canvas>
+<div id="labels"></div>
+<div id="tooltip" hidden></div>
+
+<header id="topbar">
+  <button class="pill panel-btn" data-panel="panel-left">List</button>
+  <h1>Human Atlas <span>· 3D</span></h1>
+  <div class="seg modes">
+    <button data-mode="body" class="on">Body</button>
+    <button data-mode="muscles">Muscles</button>
+    <button data-mode="bones">Skeleton</button>
+  </div>
+  <span id="det-count"></span>
+  <span class="spacer"></span>
+  <button class="pill" id="btn-explode-all"><span class="lg">Disassemble all</span><span class="sm">Explode</span></button>
+  <button class="pill" id="btn-assemble">Re-assemble</button>
+  <button class="pill" id="btn-reset">Reset</button>
+  <button class="pill panel-btn" data-panel="panel-right">Info</button>
+</header>
+
+<aside id="panel-left">
+  <div class="p-head">
+    <h2>Muscle list</h2>
+    <input id="search" type="search" placeholder="Search name, action or region…" autocomplete="off">
+    <span id="count"></span>
+  </div>
+  <div id="list"></div>
+</aside>
+
+<aside id="panel-right">
+  <div class="p-head"><h2>Selection</h2></div>
+  <div id="details"></div>
+</aside>
+
+<footer id="toolbar">
+  <div class="seg modes mobile-modes">
+    <button data-mode="body" class="on">Body</button>
+    <button data-mode="muscles">Muscles</button>
+    <button data-mode="bones">Skeleton</button>
+  </div>
+  <div class="ctl">
+    <label for="slider-explode">Spread</label>
+    <input id="slider-explode" type="range" min="0" max="100" value="0">
+  </div>
+  <div class="ctl">
+    <label for="slider-layer">Depth</label>
+    <input id="slider-layer" type="range" min="1" max="3" step="1" value="3">
+    <span id="layer-label" class="hide-sm">all layers</span>
+  </div>
+  <div class="ctl hide-sm">
+    <label for="slider-opacity">X-ray</label>
+    <input id="slider-opacity" type="range" min="15" max="100" value="100">
+  </div>
+  <span class="vsep hide-sm"></span>
+  <div class="seg">
+    <button data-side="L">Left</button>
+    <button data-side="both" class="on">Both</button>
+    <button data-side="R">Right</button>
+  </div>
+  <div class="seg">
+    <button data-set="gym" class="on">Gym</button>
+    <button data-set="all">All muscles</button>
+  </div>
+  <div class="seg hide-sm">
+    <button data-view="front">Front</button>
+    <button data-view="back">Back</button>
+    <button data-view="left">Side</button>
+    <button data-view="upper">Upper</button>
+    <button data-view="lower">Lower</button>
+  </div>
+  <span class="vsep hide-sm"></span>
+  <label class="sw"><input type="checkbox" id="chk-skeleton" checked> Skeleton</label>
+  <label class="sw"><input type="checkbox" id="chk-labels"> Labels</label>
+  <label class="sw hide-sm"><input type="checkbox" id="chk-isolate"> Isolate</label>
+  <label class="sw"><input type="checkbox" id="chk-ghost" checked> Ghost skin</label>
+  <label class="sw hide-sm"><input type="checkbox" id="chk-mirror" checked> Mirror</label>
+  <label class="sw hide-sm"><input type="checkbox" id="chk-rotate"> Spin</label>
+</footer>
+
+<div id="loading">
+  <h1>Human Atlas 3D</h1>
+  <p id="note">Generating anatomy…</p>
+  <div class="track"><div id="bar"></div></div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script>if (!window.THREE) document.write('<scr'+'ipt src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/scr'+'ipt>');</script>
+<script src="js/geom.js"></script>
+<script src="js/landmarks.js"></script>
+<script src="js/skeleton.js"></script>
+<script src="js/retarget.js"></script>
+<script src="assets/body-mesh.js"></script>
+<script src="js/bodymesh.js"></script>
+<script src="js/muscles.js"></script>
+<script src="js/muscles-upper.js"></script>
+<script src="js/muscles-lower.js"></script>
+<script src="js/gym.js"></script>
+<script src="js/orbit.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
